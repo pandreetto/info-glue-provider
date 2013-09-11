@@ -19,6 +19,7 @@ import sys
 import os
 import stat
 import re
+import tempfile
 from threading import Thread
 
 from GLUEInfoProvider import CommonUtils
@@ -30,6 +31,18 @@ class SiteInfoHandler(Thread):
         Thread.__init__(self)
         self.errList = list()
         self.pRegex = re.compile('^\s*([^=\s]+)\s*=([^$]+)$')
+        
+        self.ceHost = None
+        self.cePort = 8443
+        self.siteName = None
+        self.jobmanager = None
+        self.batchsys = None
+        self.softDir = 'Undefined'
+        self.ceDataDir = 'unset'
+        
+        self.queues = list()
+        self.seList = list()
+        self.capabilities = list()
 
     def setStream(self, stream):
         self.stream = stream
@@ -49,38 +62,84 @@ class SiteInfoHandler(Thread):
                 value = parsed.group(2).strip()
                 
                 if key == 'CE_HOST':
-                    print value
-                    
+                    self.ceHost = value
+                    continue
+
+                if key == 'SITE_NAME':
+                    self.siteName = value
+                    continue
+                
+                if key == 'JOB_MANAGER':
+                    self.jobmanager = value
+                    continue
+                
+                if key == 'CE_BATCH_SYS':
+                    self.batchsys = value
+                    continue
+
+                if key.startswith('CE_HOST_'):
+                    self.parseHostSection(key, value)
+                    continue
+                
+                if key == 'VO_SW_DIR':
+                    self.softDir = value
+                    continue
+
+                if key == 'CE_DATADIR':
+                    self.ceDataDir = value
+                    continue
+
+                if key == 'CE_CAPABILITY':
+                    self.capabilities += value.strip('\'"').split()
+                    continue
+
+
+
             finally:
                 line = self.stream.readline()
 
 
+    def parseHostSection(self, key, value):
+    
+        if key.endswith('QUEUES'):
+            self.queues += value.strip('\'"').split()
+
+
 def parse(fileList):
     
-    tempExec = '/tmp/print-siteinfo-defs'
+    container = SiteInfoHandler()
     outFile = None
-    inFile = None
+    tempExec = None
     
     try:
-        outFile = open(tempExec,'w')
-        for fileItem in fileList:
-            inFile = open(fileItem)
-            for line in inFile:
-                outFile.write(line)
-            inFile.close()
-        
-        outFile.write('\nset\n')
-        
-    finally:
-        if outFile:
-            outFile.close()
-        if inFile:
-            inFile.close()
     
-    os.chmod(tempExec, stat.S_IRUSR | stat.S_IXUSR)
+        tmpfd, tempExec = tempfile.mkstemp(".sh", "print-siteinfo-defs", '/tmp')
+
+        inFile = None
         
-    container = SiteInfoHandler()
-    CommonUtils.parseStream(tempExec, container)
+        try:
+            outFile = os.fdopen(tmpfd,'w+b')
+            for fileItem in fileList:
+                inFile = open(fileItem)
+                for line in inFile:
+                    outFile.write(line)
+                inFile.close()
+        
+            outFile.write('\nset\n')
+        
+        finally:
+            if inFile:
+                inFile.close()
+            if outFile:
+                outFile.close()
+    
+        os.chmod(tempExec, stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+        
+        CommonUtils.parseStream(tempExec, container)
+    
+    finally:
+        os.remove(tempExec)
+    
     return container
 
 

@@ -21,6 +21,8 @@ import traceback
 import ConfigParser
 from threading import Thread
 
+pRegex = re.compile('^\s*([^=\s]+)\s*=([^$]+)$')
+
 class ErrorHandler(Thread):
 
     def __init__(self, err_stream):
@@ -65,10 +67,8 @@ def parseStream(cmd, container):
     if processErr:
         raise Exception(processErr)
 
-
 def readConfigFile(configFile):
 
-    pRegex = re.compile('^\s*([^=\s]+)\s*=([^$]+)$')
     conffile = None
     config = dict()
     
@@ -113,4 +113,33 @@ def errorMsgFromTrace():
     result = '%s (%s)' % (evalue, trMessage)
     return result
 
+
+def getCREAMServiceInfo():
+
+    #
+    # TODO to be improved
+    #
+    propFile = None
+    implVer = 'Unknown'
+    ifaceVer = 'Unknown'
     
+    try:
+        propFile = open('/etc/glite-ce-cream/service.properties')
+        for line in propFile:
+            parsed = pRegex.match(line)
+            if not parsed:
+                continue
+            if parsed.group(1) == 'implementation_version':
+                implVer = parsed.group(2).strip()
+            if parsed.group(1) == 'interface_version':
+                ifaceVer = parsed.group(2).strip()
+        
+    except:
+        pass
+    
+    if propFile:
+        propFile.close()
+
+    return (implVer, ifaceVer)
+    
+

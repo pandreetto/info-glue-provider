@@ -19,6 +19,7 @@ import sys
 
 from GLUEInfoProvider import CommonUtils
 from GLUEInfoProvider import ShSiteDefHandler
+from GLUEInfoProvider import GLUECEHandler
 
 def main():
     
@@ -39,7 +40,7 @@ def main():
     
     siteDefs = ShSiteDefHandler.parse(config['siteinfo-defs'].split(':'))
 
-
+    GLUECEHandler.process(siteDefs)
 
 
 
