@@ -29,26 +29,13 @@ def main():
             
         config = CommonUtils.readConfigFile(sys.argv[1])
 
+        siteDefs = ShSiteDefHandler.parse(config)
+
+        GLUECEHandler.process(siteDefs)
+        
     except Exception, ex:
         sys.stderr.write(str(ex) + '\n')
         sys.exit(1)
-
-    if not 'siteinfo-defs' in config:
-        sys.stderr.write('Missing site-info definition files\n')
-        sys.exit(1)
-    
-    
-    siteDefs = ShSiteDefHandler.parse(config['siteinfo-defs'].split(':'))
-
-    GLUECEHandler.process(siteDefs)
-
-
-
-
-
-
-
-
 
 
 if __name__ == "__main__":

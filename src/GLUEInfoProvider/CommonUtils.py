@@ -84,6 +84,9 @@ def readConfigFile(configFile):
         if tmpConf.has_option('Main','siteinfo-defs'):
             config['siteinfo-defs'] = tmpConf.get('Main', 'siteinfo-defs')
 
+        if tmpConf.has_option('Main','vo-defs-dir'):
+            config['vo-defs-dir'] = tmpConf.get('Main', 'vo-defs-dir')
+
     finally:
         if conffile:
             conffile.close()
@@ -142,4 +145,38 @@ def getCREAMServiceInfo():
 
     return (implVer, ifaceVer)
     
+
+class VOData:
+
+    def __init__(self, voRaw):
+        tmpl = voRaw.split('/')
+        if len(tmpl) == 1 and len(tmpl[0]) > 0:
+            self.voname = tmpl[0]
+            self.fqan = None
+        elif len(tmpl) > 1:
+            self.voname = tmpl[0]
+            self.fqan = voRaw
+            
+    def __repr__(self):
+        if self.fqan:
+            return 'VOMS: ' + self.fqan
+        return 'VO: ' + self.voname
+        
+    def getNormName(self):
+        if self.fqan:
+            return self.fqan.replace('=','_')
+        else:
+            return self.voname
+            
+    def getVOName(self):
+        return self.voname
+
+class VOParams:
+
+    def __init__(self):
+        self.softDir = None
+        self.defaultSE = None
+
+
+
 

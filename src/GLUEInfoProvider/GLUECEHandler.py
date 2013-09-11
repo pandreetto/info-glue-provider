@@ -24,10 +24,14 @@ MAX_POLICY_NUMBER = 999999999
 
 def process(siteDefs, out=sys.stdout):
     
-    for queue in siteDefs.queues:
+    for queue in siteDefs.queues[siteDefs.ceHost]:
     
-        out.write('dn: GlueCEUniqueID=%s:%d/cream-%s-%s,mds-vo-name=resource,o=grid\n' %
-                  (siteDefs.ceHost, siteDefs.cePort, siteDefs.jobmanager, queue))
+        glueceDN = 'GlueCEUniqueID=%s:%d/cream-%s-%s,mds-vo-name=resource,o=grid' % \
+                   (siteDefs.ceHost, siteDefs.cePort, siteDefs.jobmanager, queue)
+        
+        glueceID = '%s:%d/cream-%s-%s' % (siteDefs.ceHost, siteDefs.cePort, siteDefs.jobmanager, queue)
+    
+        out.write('dn:%s\n' % glueceDN)
         
         out.write('''objectClass: GlueCETop
 objectClass: GlueCE
@@ -40,14 +44,17 @@ objectClass: GlueKey
 objectClass: GlueSchemaVersion
 ''')
 
-        out.write('GlueCEUniqueID: %s:%d/cream-%s-%s\n' %
-                  (siteDefs.ceHost, siteDefs.cePort, siteDefs.jobmanager, queue))
+        out.write('GlueCEUniqueID: %s\n' % glueceID)
+                  
         out.write('GlueCEHostingCluster: %s\n' % siteDefs.ceHost)
         out.write('GlueCEName: %s\n' % queue)
         out.write('GlueCEImplementationName: CREAM\n')
         out.write('GlueCEImplementationVersion: %s\n' % CommonUtils.getCREAMServiceInfo()[0])
         for capa in siteDefs.capabilities:
             out.write('GlueCECapability: %s\n' % capa)
+            
+        for acbr in siteDefs.acbrTable[(siteDefs.ceHost, queue)]:
+            out.write('GlueCEAccessControlBaseRule: %s\n' % repr(acbr))
         
         out.write('GlueCEInfoGatekeeperPort: %d\n' % siteDefs.cePort)
         out.write('GlueCEInfoHostName: %s\n' % siteDefs.ceHost)
@@ -57,8 +64,10 @@ objectClass: GlueSchemaVersion
         out.write('GlueCEInfoTotalCPUs: 0\n')
         out.write('GlueCEInfoJobManager: %s\n' % siteDefs.jobmanager)
         out.write('GlueCEInfoContactString: https://%s:%d/ce-cream/services\n' % (siteDefs.ceHost, siteDefs.cePort))
-        out.write('GlueCEInfoApplicationDir: %s\n' % siteDefs.softDir)
-        out.write('GlueCEInfoDataDir: %s\n' % siteDefs.ceDataDir)
+        if siteDefs.softDir and len(siteDefs.softDir) > 0:
+            out.write('GlueCEInfoApplicationDir: %s\n' % siteDefs.softDir)
+        if siteDefs.ceDataDir and len(siteDefs.ceDataDir) > 0:
+            out.write('GlueCEInfoDataDir: %s\n' % siteDefs.ceDataDir)
         if len(siteDefs.seList) > 0:
             out.write('GlueCEInfoDefaultSE: %s\n' % siteDefs.seList[0])
             
@@ -90,5 +99,56 @@ objectClass: GlueSchemaVersion
         out.write('\n')
 
     
+        for vogrp in siteDefs.acbrTable[(siteDefs.ceHost, queue)]:
+            
+            voviewID = vogrp.getNormName()
+            voNameLC = vogrp.getVOName().lower()
+            
+            out.write("dn:GlueVOViewLocalID=%s,%s\n" % (voviewID, glueceDN))
+            
+            out.write('''objectClass: GlueCETop
+objectClass: GlueVOView
+objectClass: GlueCEInfo
+objectClass: GlueCEState
+objectClass: GlueCEAccessControlBase
+objectClass: GlueCEPolicy
+objectClass: GlueKey
+objectClass: GlueSchemaVersion
+''')
+            out.write('GlueVOViewLocalID: %s\n' % voviewID)
+            out.write('GlueCEStateRunningJobs: 0\n')
+            out.write('GlueCEStateWaitingJobs: %d\n' % MAX_JOB_NUMBER)
+            out.write('GlueCEStateTotalJobs: 0\n')
+            out.write('GlueCEStateFreeJobSlots: 0\n')
+            out.write('GlueCEStateEstimatedResponseTime: %d\n' % MAX_RESPONSE_TIME)
+            out.write('GlueCEStateWorstResponseTime: %d\n' % MAX_RESPONSE_TIME)
+            
+            tmpSE = None
+            tmpSDir = None
+            
+            if voNameLC in siteDefs.voParams:
+                tmpSE = siteDefs.voParams[voNameLC].defaultSE
+                tmpSDir = siteDefs.voParams[voNameLC].softDir
+                
+            if not tmpSE and len(siteDefs.seList) > 0:
+                tmpsSE = siteDefs.seList
+            
+            if not tmpSDir:
+                tmpSDir = siteDefs.softDir
+                
+            if tmpSE:
+                out.write('GlueCEInfoDefaultSE: %s\n' % tmpSE)
+            if tmpSDir:
+                out.write('GlueCEInfoApplicationDir: %s\n' % tmpSDir)
+
+            if siteDefs.ceDataDir and len(siteDefs.ceDataDir) > 0:
+                out.write('GlueCEInfoDataDir: %s\n' % siteDefs.ceDataDir)
+                
+            out.write('GlueChunkKey: GlueCEUniqueID=%s\n' % glueceID)
+            out.write('GlueCEAccessControlBaseRule: %s\n' % repr(vogrp))
+            out.write('GlueSchemaVersionMajor: 1\n')
+            out.write('GlueSchemaVersionMinor: 3\n')
+            out.write('\n')
+
     #end for queue
     

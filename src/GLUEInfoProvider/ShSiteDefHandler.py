@@ -40,9 +40,12 @@ class SiteInfoHandler(Thread):
         self.softDir = 'Undefined'
         self.ceDataDir = 'unset'
         
-        self.queues = list()
+        self.queues = dict()
         self.seList = list()
         self.capabilities = list()
+        self.acbrTable = dict()
+        
+        self.voParams = dict()
 
     def setStream(self, stream):
         self.stream = stream
@@ -93,7 +96,9 @@ class SiteInfoHandler(Thread):
                     self.capabilities += value.strip('\'"').split()
                     continue
 
-
+                if key.startswith('VOPARAMS'):
+                    self.parseVOSection(key, value)
+                    continue
 
             finally:
                 line = self.stream.readline()
@@ -102,10 +107,55 @@ class SiteInfoHandler(Thread):
     def parseHostSection(self, key, value):
     
         if key.endswith('QUEUES'):
-            self.queues += value.strip('\'"').split()
+            self.queues[self.ceHost] = value.strip('\'"').split()
+            
+        if key.endswith('CE_AccessControlBaseRule'):
+            idx = key.find('QUEUE')
+            if idx < 0:
+                return
+                
+            queueUC = key[idx+6:-25]
+            #
+            # The variable **QUEUES must be read before ACBR !!!
+            #
+            for tmpq in self.queues[self.ceHost]:
+                if tmpq.upper() == queueUC:
+                    voRawList = value.strip('\'"').split()
+                    self.acbrTable[(self.ceHost, tmpq)] = map(CommonUtils.VOData, voRawList)
+                     
+        if key.endswith('CE_InfoJobManager'):
+            self.jobmanager = value
 
 
-def parse(fileList):
+    def parseVOSection(self, key, value):
+    
+        idx = key.find('_', 9)
+        voLC = key[9:idx]
+        
+        if not voLC in self.voParams:
+            self.voParams[voLC] = CommonUtils.VOParams()
+    
+        if key.endswith('SW_DIR'):
+            self.voParams[voLC].softDir = value
+        elif key.endswith('DEFAULT_SE'):
+            self.voParams[voLC].defaultSE = value
+            
+            
+
+
+
+
+def parse(config):
+    
+    if not 'siteinfo-defs' in config:
+        raise Exception('Missing site-info definition files')
+    
+    siteInfoList = config['siteinfo-defs'].split(':')
+    
+    if 'vo-defs-dir' in config:
+        voInfoFileList = os.listdir(config['vo-defs-dir'])
+    else:
+        voInfoFileList = list()
     
     container = SiteInfoHandler()
     outFile = None
@@ -119,12 +169,20 @@ def parse(fileList):
         
         try:
             outFile = os.fdopen(tmpfd,'w+b')
-            for fileItem in fileList:
+            for fileItem in siteInfoList:
                 inFile = open(fileItem)
                 for line in inFile:
                     outFile.write(line)
                 inFile.close()
         
+            for fileItem in voInfoFileList:
+                inFile = open(os.path.join(config['vo-defs-dir'], fileItem))
+                for line in inFile:
+                    tmps = line.strip()
+                    if len(tmps) > 0 and not tmps.startswith('#'):
+                        outFile.write('VOPARAMS_%s_%s' % (fileItem.lower(), line))
+                inFile.close()
+
             outFile.write('\nset\n')
         
         finally:
