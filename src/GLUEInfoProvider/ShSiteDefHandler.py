@@ -20,6 +20,7 @@ import os
 import stat
 import re
 import tempfile
+import socket
 from threading import Thread
 
 from GLUEInfoProvider import CommonUtils
@@ -32,13 +33,19 @@ class SiteInfoHandler(Thread):
         self.errList = list()
         self.pRegex = re.compile('^\s*([^=\s]+)\s*=([^$]+)$')
         
-        self.ceHost = None
+        self.ceHost = socket.getfqdn()
         self.cePort = 8443
         self.siteName = None
         self.jobmanager = None
         self.batchsys = None
         self.softDir = 'Undefined'
         self.ceDataDir = 'unset'
+
+        self.clusterHost = None
+        self.clusterId = None
+        self.clusterName = None
+        self.clusterSite = None
+        self.clusterCEList = list()
         
         self.queues = dict()
         self.seList = list()
@@ -46,6 +53,9 @@ class SiteInfoHandler(Thread):
         self.acbrTable = dict()
         
         self.voParams = dict()
+        self.resourceTable = dict()
+        # register the "anonymous" resource
+        self.resourceTable['--'] = CommonUtils.CEResource()
 
     def setStream(self, stream):
         self.stream = stream
@@ -80,8 +90,7 @@ class SiteInfoHandler(Thread):
                     self.batchsys = value
                     continue
 
-                if key.startswith('CE_HOST_'):
-                    self.parseHostSection(key, value)
+                if self.parseCEHostSection(key, value):
                     continue
                 
                 if key == 'VO_SW_DIR':
@@ -96,23 +105,41 @@ class SiteInfoHandler(Thread):
                     self.capabilities += value.strip('\'"').split()
                     continue
 
-                if key.startswith('VOPARAMS'):
-                    self.parseVOSection(key, value)
+                if self.parseVOSection(key, value):
+                    continue
+                    
+                if key == 'CLUSTERS' and len(value.split()) > 1:
+                    self.errList.append("Multiple clusters not supported")
+                    continue
+                
+                if self.parseClusterSection(key, value):
                     continue
 
             finally:
                 line = self.stream.readline()
 
+        #post processing
+        if not self.clusterId:
+            self.clusterId = self.ceHost
+        if not self.clusterName:
+            self.clusterName = self.ceHost
+        if not self.clusterSite:
+            self.clusterSite = self.siteName
 
-    def parseHostSection(self, key, value):
+
+    def parseCEHostSection(self, key, value):
+    
+        if not key.startswith('CE_HOST_'):
+            return False
     
         if key.endswith('QUEUES'):
             self.queues[self.ceHost] = value.strip('\'"').split()
+            return True
             
         if key.endswith('CE_AccessControlBaseRule'):
             idx = key.find('QUEUE')
             if idx < 0:
-                return
+                return True
                 
             queueUC = key[idx+6:-25]
             #
@@ -122,12 +149,18 @@ class SiteInfoHandler(Thread):
                 if tmpq.upper() == queueUC:
                     voRawList = value.strip('\'"').split()
                     self.acbrTable[(self.ceHost, tmpq)] = map(CommonUtils.VOData, voRawList)
+            return True
                      
         if key.endswith('CE_InfoJobManager'):
             self.jobmanager = value
+        
+        return True
 
 
     def parseVOSection(self, key, value):
+    
+        if not key.startswith('VOPARAMS_'):
+            return False
     
         idx = key.find('_', 9)
         voLC = key[9:idx]
@@ -136,13 +169,155 @@ class SiteInfoHandler(Thread):
             self.voParams[voLC] = CommonUtils.VOParams()
     
         if key.endswith('SW_DIR'):
-            self.voParams[voLC].softDir = value
+            self.voParams[voLC].softDir = value           
         elif key.endswith('DEFAULT_SE'):
             self.voParams[voLC].defaultSE = value
+        
+        return True
             
-            
+    def parseClusterSection(self, key, value):
 
+        if not key.startswith('CLUSTER_'):
+            return False
+    
+        if key == 'CLUSTER_HOST':
+            self.clusterHost = value
+            return True
 
+        if key.endswith('_CLUSTER_UniqueID'):
+            self.clusterId = value
+            return True
+
+        if key.endswith('_CLUSTER_Name'):
+            self.clusterName = value
+            return True
+
+        if key.endswith('_SITE_UniqueID'):
+            self.clusterSite = value
+            return True
+
+        if key.endswith('_CE_HOSTS'):
+            self.clusterCEList += value.strip('\'"').split()
+            return True
+
+        if key.endswith('_SUBCLUSTERS'):
+            for scId in value.strip('\'"').split():
+                newId = scId.replace('-','_').replace('.','_').upper()
+                self.resourceTable[newId] = CommonUtils.CEResource()
+
+        return True
+        
+    def parseSubClusterSection(self, key, value):
+    
+        if not key.startswith('SUBCLUSTER_'):
+            return False
+        
+        if key.endswith('_SUBCLUSTER_UniqueID'):
+            scId = key[11:-20]
+            self.resourceTable[scId].id = value
+            return True
+
+        if key.endswith('_HOST_ApplicationSoftwareRunTimeEnvironment'):
+            scId = key[11:-43]
+            self.resourceTable[scId].runtimeEnv += value.strip('\'"').split()
+            return True
+
+        if key.endswith('_HOST_ArchitectureSMPSize'):
+            scId = key[11:-25]
+            self.resourceTable[scId].smpSize = int(value)
+            return True
+
+        if key.endswith('_HOST_ArchitecturePlatformType'):
+            scId = key[11:-30]
+            self.resourceTable[scId].osArch = value
+            return True
+
+        if key.endswith('_HOST_BenchmarkSF00'):
+            scId = key[11:-19]
+            self.resourceTable[scId].benchSF00 = float(value)
+            return True
+
+        if key.endswith('_HOST_BenchmarkSI00'):
+            scId = key[11:-19]
+            self.resourceTable[scId].benchSI00 = float(value)
+            return True
+
+        if key.endswith('_HOST_MainMemoryRAMSize'):
+            scId = key[11:-23]
+            self.resourceTable[scId].mainMemSize = int(value)
+            return True
+
+        if key.endswith('_HOST_MainMemoryVirtualSize'):
+            scId = key[11:-27]
+            self.resourceTable[scId].mainVirtSize = int(value)
+            return True
+
+        if key.endswith('_HOST_NetworkAdapterInboundIP'):
+            scId = key[11:-29]
+            self.resourceTable[scId].inBound = value.upper() == 'TRUE'
+            return True
+
+        if key.endswith('_HOST_NetworkAdapterOutboundIP'):
+            scId = key[11:-30]
+            self.resourceTable[scId].outBound  = value.upper() == 'TRUE'
+            return True
+
+        if key.endswith('_HOST_OperatingSystemName'):
+            scId = key[11:-25]
+            self.resourceTable[scId].osName = value
+            return True
+
+        if key.endswith('_HOST_OperatingSystemRelease'):
+            scId = key[11:-28]
+            self.resourceTable[scId].osRelease = value
+            return True
+
+        if key.endswith('_HOST_OperatingSystemVersion'):
+            scId = key[11:-28]
+            self.resourceTable[scId].osVersion = value
+            return True
+
+        if key.endswith('_HOST_ProcessorClockSpeed'):
+            scId = key[11:-25]
+            self.resourceTable[scId].procSpeed = int(value)
+            return True
+
+        if key.endswith('_HOST_ProcessorModel'):
+            scId = key[11:-20]
+            self.resourceTable[scId].procModel = value
+            return True
+
+        if key.endswith('_HOST_ProcessorVendor'):
+            scId = key[11:-21]
+            self.resourceTable[scId].procVendor = value
+            return True
+
+        if key.endswith('_SUBCLUSTER_Name'):
+            scId = key[11:-16]
+            self.resourceTable[scId].name = value
+            return True
+
+        if key.endswith('_SUBCLUSTER_PhysicalCPUs'):
+            scId = key[11:-24]
+            self.resourceTable[scId].phyCPU = int(value)
+            return True
+
+        if key.endswith('_SUBCLUSTER_LogicalCPUs'):
+            scId = key[11:-23]
+            self.resourceTable[scId].logCPU = int(value)
+            return True
+
+        if key.endswith('_SUBCLUSTER_TmpDir'):
+            scId = key[11:-18]
+            self.resourceTable[scId].tmpDir = value
+            return True
+
+        if key.endswith('_SUBCLUSTER_WNTmpDir'):
+            scId = key[11:-20]
+            self.resourceTable[scId].WNDir = value
+            return True
+
+        return True
 
 
 def parse(config):

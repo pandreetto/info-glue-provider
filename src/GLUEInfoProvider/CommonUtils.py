@@ -177,6 +177,36 @@ class VOParams:
         self.softDir = None
         self.defaultSE = None
 
+class CEResource:
+
+    def __init__(self):
+        self.id = None
+        self.name = None
+        self.runtimeEnv = list()
+        self.smpSize = 0
+        self.benchSF00 = 0
+        self.benchSI00 = 0
+        self.mainMemSize = 0
+        self.mainVirtSize = 0
+        self.inBound = False
+        self.outBound = True
+        self.osName = None
+        self.osArch = None
+        self.osRelease = None
+        self.osVersion = None
+        self.procSpeed = 0
+        self.procModel = None
+        self.procVendor = None
+        self.procDescr = None
+        self.phyCPU = 0
+        self.logCPU = 0
+        self.tmpDir = None
+        self.WNDir = None
+        
+
+
+
+
 
 
 

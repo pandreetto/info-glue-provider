@@ -23,7 +23,7 @@ MAX_JOB_NUMBER = 444444
 MAX_POLICY_NUMBER = 999999999
 
 def process(siteDefs, out=sys.stdout):
-    
+
     for queue in siteDefs.queues[siteDefs.ceHost]:
     
         glueceDN = 'GlueCEUniqueID=%s:%d/cream-%s-%s,mds-vo-name=resource,o=grid' % \

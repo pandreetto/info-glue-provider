@@ -20,6 +20,7 @@ import sys
 from GLUEInfoProvider import CommonUtils
 from GLUEInfoProvider import ShSiteDefHandler
 from GLUEInfoProvider import GLUECEHandler
+from GLUEInfoProvider import GLUEClusterHandler
 
 def main():
     
@@ -33,8 +34,11 @@ def main():
 
         GLUECEHandler.process(siteDefs)
         
+        GLUEClusterHandler.process(siteDefs)
+        
     except Exception, ex:
-        sys.stderr.write(str(ex) + '\n')
+        etype, evalue, etraceback = sys.exc_info()
+        sys.excepthook(etype, evalue, etraceback)
         sys.exit(1)
 
 
