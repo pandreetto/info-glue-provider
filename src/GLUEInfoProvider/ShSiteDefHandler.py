@@ -32,6 +32,7 @@ class SiteInfoHandler(Thread):
         Thread.__init__(self)
         self.errList = list()
         self.pRegex = re.compile('^\s*([^=\s]+)\s*=\s*(.+)$')
+        self.mRegex = re.compile('([^:]+):([^,]+),(.+)')
         
         self.ceHost = socket.getfqdn()
         self.cePort = 8443
@@ -56,6 +57,8 @@ class SiteInfoHandler(Thread):
         self.resourceTable = dict()
         # temporary register the "anonymous" resource
         self.resourceTable['--'] = CommonUtils.CEResource()
+        
+        self.seAccess = dict()
 
     def setStream(self, stream):
         self.stream = stream
@@ -121,6 +124,13 @@ class SiteInfoHandler(Thread):
                 if self.parseSubClusterSection(key, value):
                     continue
 
+                if key == 'SE_LIST':
+                    self.seList += value.strip('\'"').split()
+                    continue
+
+                if self.parseSEAccess(key, value):
+                    continue
+                
             finally:
                 line = self.stream.readline()
 
@@ -424,6 +434,17 @@ class SiteInfoHandler(Thread):
                 
         return False
 
+
+    def parseSEAccess(self, key, value):
+        if key <> 'SE_MOUNT_INFO_LIST':
+            return False
+            
+        for mItem in value.strip('\'"').split():
+            parsed = self.mRegex.match(mItem)
+            if parsed:
+                self.seAccess[parsed.group(1)] = '%s,%s' % (parsed.group(3), parsed.group(2))
+                
+        return True
 
 def parse(config):
     

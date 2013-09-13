@@ -17,5 +17,6 @@
 __all__ = [ "CommonUtils",
             "ShSiteDefHandler",
             "GLUECEHandler",
-            "GLUEClusterHandler" ]
+            "GLUEClusterHandler",
+            "GLUECESEBindHandler" ]
 
