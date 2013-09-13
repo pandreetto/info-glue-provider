@@ -159,8 +159,8 @@ class VOData:
             
     def __repr__(self):
         if self.fqan:
-            return 'VOMS: ' + self.fqan
-        return 'VO: ' + self.voname
+            return 'VOMS:' + self.fqan
+        return 'VO:' + self.voname
         
     def getNormName(self):
         if self.fqan:

@@ -48,10 +48,72 @@ objectClass: GlueSchemaVersion
         glueceID = '%s:%d/cream-%s-%s' % (siteDefs.ceHost, siteDefs.cePort, siteDefs.jobmanager, queue)
         out.write('GlueClusterService: %s\n' % glueceID)
     
-    out.write('GlueInformationServiceURL: ldap://%s:2170/mds-vo-name=resource,o=grid\n' % siteDefs.ceHost)
+    out.write('GlueInformationServiceURL: ldap://%s:2170/mds-vo-name=resource,o=grid\n' % siteDefs.clusterHost)
     out.write('GlueSchemaVersionMajor: 1\n')
     out.write('GlueSchemaVersionMinor: 3\n')
     out.write('\n')
+    
+    
+    
+    for resData in siteDefs.resourceTable.values():
+        
+        out.write('dn: GlueSubClusterUniqueID=%s,%s\n' % (resData.id, clusterDN))
+        
+        out.write('''objectClass: GlueClusterTop
+objectClass: GlueSubCluster
+objectClass: GlueHostApplicationSoftware
+objectClass: GlueHostArchitecture
+objectClass: GlueHostBenchmark
+objectClass: GlueHostMainMemory
+objectClass: GlueHostNetworkAdapter
+objectClass: GlueHostOperatingSystem
+objectClass: GlueHostProcessor
+objectClass: GlueInformationService
+objectClass: GlueKey
+objectClass: GlueSchemaVersion
+''')
+
+        out.write('GlueSubClusterUniqueID: %s\n' % resData.id)
+        out.write('GlueChunkKey: GlueClusterUniqueID=%s\n' % siteDefs.clusterId)
+        out.write('GlueHostArchitecturePlatformType: %s\n' % resData.osArch)
+        out.write('GlueHostArchitectureSMPSize: %d\n' % resData.smpSize)
+        out.write('GlueHostBenchmarkSF00: %f\n' % resData.benchSF00)
+        out.write('GlueHostBenchmarkSI00: %f\n' % resData.benchSI00)
+        out.write('GlueHostMainMemoryRAMSize: %d\n' % resData.mainMemSize)
+        out.write('GlueHostMainMemoryVirtualSize: %d\n' % resData.mainVirtSize)
+        out.write('GlueHostNetworkAdapterInboundIP: %s\n' % str(resData.inBound).upper())
+        out.write('GlueHostNetworkAdapterOutboundIP: %s\n' % str(resData.outBound).upper())
+        out.write('GlueHostOperatingSystemName: %s\n' % resData.osName)
+        out.write('GlueHostOperatingSystemRelease: %s\n' % resData.osRelease)
+        out.write('GlueHostOperatingSystemVersion: %s\n' % resData.osVersion)
+        out.write('GlueHostProcessorClockSpeed: %d\n' % resData.procSpeed)
+        out.write('GlueHostProcessorModel: %s\n' % resData.procModel)
+        out.write('GlueHostProcessorVendor: %s\n' % resData.procVendor)
+        out.write('GlueHostProcessorOtherDescription: %s\n' % resData.procDescr)
+        
+        for appItem in resData.runtimeEnv:
+            out.write("GlueHostApplicationSoftwareRunTimeEnvironment: %s\n" % appItem)
+        
+        out.write('GlueSubClusterName: %s\n' % resData.name)
+        out.write('GlueSubClusterPhysicalCPUs: %d\n' % resData.phyCPU)
+        out.write('GlueSubClusterLogicalCPUs: %d\n' % resData.logCPU)
+        out.write('GlueSubClusterTmpDir: %s\n' % resData.tmpDir)
+        out.write('GlueSubClusterWNTmpDir: %s\n' % resData.WNDir)
+        out.write('GlueInformationServiceURL: ldap://%s:2170/mds-vo-name=resource,o=grid\n' % siteDefs.clusterHost)
+        out.write('GlueSchemaVersionMajor: 1\n')
+        out.write('GlueSchemaVersionMinor: 3\n')
+        out.write('\n')
+        
+        
+    #end of resources
+
+
+
+
+
+
+
+
 
 
 

@@ -31,7 +31,7 @@ class SiteInfoHandler(Thread):
     def __init__(self):
         Thread.__init__(self)
         self.errList = list()
-        self.pRegex = re.compile('^\s*([^=\s]+)\s*=([^$]+)$')
+        self.pRegex = re.compile('^\s*([^=\s]+)\s*=\s*(.+)$')
         
         self.ceHost = socket.getfqdn()
         self.cePort = 8443
@@ -54,7 +54,7 @@ class SiteInfoHandler(Thread):
         
         self.voParams = dict()
         self.resourceTable = dict()
-        # register the "anonymous" resource
+        # temporary register the "anonymous" resource
         self.resourceTable['--'] = CommonUtils.CEResource()
 
     def setStream(self, stream):
@@ -105,6 +105,9 @@ class SiteInfoHandler(Thread):
                     self.capabilities += value.strip('\'"').split()
                     continue
 
+                if self.parseOldSubClusterVars(key, value):
+                    continue
+                    
                 if self.parseVOSection(key, value):
                     continue
                     
@@ -113,6 +116,9 @@ class SiteInfoHandler(Thread):
                     continue
                 
                 if self.parseClusterSection(key, value):
+                    continue
+                    
+                if self.parseSubClusterSection(key, value):
                     continue
 
             finally:
@@ -125,6 +131,16 @@ class SiteInfoHandler(Thread):
             self.clusterName = self.ceHost
         if not self.clusterSite:
             self.clusterSite = self.siteName
+            
+        if len(self.resourceTable) > 1:
+            #remove anonymous resource
+            del(self.resourceTable['--'])
+        else:
+            self.resourceTable['--'].id = self.ceHost
+            self.resourceTable['--'].name = self.ceHost
+            self.resourceTable['--'].tmpDir = '/tmp'
+            self.resourceTable['--'].WNDir = '/tmp'
+
 
 
     def parseCEHostSection(self, key, value):
@@ -219,7 +235,11 @@ class SiteInfoHandler(Thread):
 
         if key.endswith('_HOST_ApplicationSoftwareRunTimeEnvironment'):
             scId = key[11:-43]
-            self.resourceTable[scId].runtimeEnv += value.strip('\'"').split()
+            for item in value.strip('$\'"').split():
+                if item.endswith("\\n"):
+                    item = item[:-2]
+                if len(item) > 0:
+                    self.resourceTable[scId].runtimeEnv.append(item)
             return True
 
         if key.endswith('_HOST_ArchitectureSMPSize'):
@@ -287,6 +307,11 @@ class SiteInfoHandler(Thread):
             self.resourceTable[scId].procModel = value
             return True
 
+        if key.endswith('_HOST_ProcessorOtherDescription'):
+            scId = key[11:-31]
+            self.resourceTable[scId].procDescr = value
+            return True
+
         if key.endswith('_HOST_ProcessorVendor'):
             scId = key[11:-21]
             self.resourceTable[scId].procVendor = value
@@ -318,6 +343,86 @@ class SiteInfoHandler(Thread):
             return True
 
         return True
+        
+    def parseOldSubClusterVars(self, key, value):
+    
+        if key == 'CE_RUNTIMEENV':
+            for item in value.strip('$\'"').split():
+                if item.endswith("\\n"):
+                    item = item[:-2]
+                if len(item) > 0:
+                    self.resourceTable['--'].runtimeEnv.append(item)
+            return True
+        
+        if key == 'CE_SMPSIZE':
+            self.resourceTable['--'].smpSize = int(value)
+            return True
+        
+        if key == 'CE_OS_ARCH':
+            self.resourceTable['--'].osArch = value
+            return True
+        
+        if key == 'CE_SF00':
+            self.resourceTable['--'].benchSF00 = float(value)
+            return True
+        
+        if key == 'CE_SI00':
+            self.resourceTable['--'].benchSI00 = float(value)
+            return True
+        
+        if key == 'CE_MINPHYSMEM':
+            self.resourceTable['--'].mainMemSize = int(value)
+            return True
+        
+        if key == 'CE_MINVIRTMEM':
+            self.resourceTable['--'].mainVirtSize = int(value)
+            return True
+        
+        if key == 'CE_INBOUNDIP':
+            self.resourceTable['--'].inBound = value.upper() == 'TRUE'
+            return True
+        
+        if key == 'CE_OUTBOUNDIP':
+            self.resourceTable['--'].outBound  = value.upper() == 'TRUE'
+            return True
+        
+        if key == 'CE_OS':
+            self.resourceTable['--'].osName = value
+            return True
+        
+        if key == 'CE_OS_RELEASE':
+            self.resourceTable['--'].osRelease = value
+            return True
+        
+        if key == 'CE_OS_VERSION':
+            self.resourceTable['--'].osVersion = value
+            return True
+        
+        if key == 'CE_CPU_SPEED':
+            self.resourceTable['--'].procSpeed = int(value)
+            return True
+        
+        if key == 'CE_CPU_MODEL':
+            self.resourceTable['--'].procModel = value
+            return True
+        
+        if key == 'CE_CPU_VENDOR':
+            self.resourceTable['--'].procVendor = value
+            return True
+        
+        if key == 'CE_OTHERDESCR':
+            self.resourceTable['--'].procDescr = value
+            return True
+        
+        if key == 'CE_PHYSCPU':
+            self.resourceTable['--'].phyCPU = int(value)
+            return True
+        
+        if key == 'CE_LOGCPU':
+            self.resourceTable['--'].logCPU = int(value)
+            return True
+                
+        return False
 
 
 def parse(config):
