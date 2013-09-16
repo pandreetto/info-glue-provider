@@ -15,8 +15,10 @@
 # limitations under the License.
 
 __all__ = [ "CommonUtils",
+            "ServiceInfoUtils",
             "ShSiteDefHandler",
             "GLUECEHandler",
             "GLUEClusterHandler",
-            "GLUECESEBindHandler" ]
+            "GLUECESEBindHandler",
+            "GLUEServiceHandler" ]
 

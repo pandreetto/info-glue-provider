@@ -15,13 +15,10 @@
 # limitations under the License.
 
 import sys
-import re
 import subprocess
 import traceback
 import ConfigParser
 from threading import Thread
-
-pRegex = re.compile('^\s*([^=\s]+)\s*=([^$]+)$')
 
 class ErrorHandler(Thread):
 
@@ -117,35 +114,6 @@ def errorMsgFromTrace():
     return result
 
 
-def getCREAMServiceInfo():
-
-    #
-    # TODO to be improved
-    #
-    propFile = None
-    implVer = 'Unknown'
-    ifaceVer = 'Unknown'
-    
-    try:
-        propFile = open('/etc/glite-ce-cream/service.properties')
-        for line in propFile:
-            parsed = pRegex.match(line)
-            if not parsed:
-                continue
-            if parsed.group(1) == 'implementation_version':
-                implVer = parsed.group(2).strip()
-            if parsed.group(1) == 'interface_version':
-                ifaceVer = parsed.group(2).strip()
-        
-    except:
-        pass
-    
-    if propFile:
-        propFile.close()
-
-    return (implVer, ifaceVer)
-    
-
 class VOData:
 
     def __init__(self, voRaw):
@@ -161,6 +129,16 @@ class VOData:
         if self.fqan:
             return 'VOMS:' + self.fqan
         return 'VO:' + self.voname
+    
+    def __cmp__(self, other):
+        if self.fqan:
+            return cmp(self.fqan, other.fqan)
+        return cmp(self.voname, other.voname)
+    
+    def __hash__(self):
+        if self.fqan:
+            return hash(self.fqan)
+        return hash(self.voname)
         
     def getNormName(self):
         if self.fqan:

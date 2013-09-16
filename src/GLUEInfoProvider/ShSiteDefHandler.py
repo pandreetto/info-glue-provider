@@ -151,7 +151,9 @@ class SiteInfoHandler(Thread):
             self.resourceTable['--'].tmpDir = '/tmp'
             self.resourceTable['--'].WNDir = '/tmp'
 
-
+        #
+        # TODO merge resource tags from files (replace lcg-info-dynamic-software)
+        #
 
     def parseCEHostSection(self, key, value):
     
@@ -445,6 +447,11 @@ class SiteInfoHandler(Thread):
                 self.seAccess[parsed.group(1)] = '%s,%s' % (parsed.group(3), parsed.group(2))
                 
         return True
+
+
+
+
+
 
 def parse(config):
     
