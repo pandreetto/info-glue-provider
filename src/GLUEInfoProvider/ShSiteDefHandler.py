@@ -31,7 +31,6 @@ class SiteInfoHandler(Thread):
     def __init__(self):
         Thread.__init__(self)
         self.errList = list()
-        self.pRegex = re.compile('^\s*([^=\s]+)\s*=\s*(.+)$')
         self.mRegex = re.compile('([^:]+):([^,]+),(.+)')
         
         self.ceHost = socket.getfqdn()
@@ -83,7 +82,7 @@ class SiteInfoHandler(Thread):
         while line:
             try:
             
-                parsed = self.pRegex.match(line)
+                parsed = CommonUtils.pRegex.match(line)
                 if not parsed:
                     continue
                 

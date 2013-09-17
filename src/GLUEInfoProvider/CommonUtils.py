@@ -15,6 +15,7 @@
 # limitations under the License.
 
 import sys
+import re
 import subprocess
 import traceback
 import time
@@ -23,6 +24,8 @@ from threading import Thread
 
 providerName = 'info-glue-provider'
 providerVersion = '1.0'
+
+pRegex = re.compile('^\s*([^=\s]+)\s*=\s*(.+)$')
 
 class ErrorHandler(Thread):
 

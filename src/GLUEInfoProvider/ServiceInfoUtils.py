@@ -23,7 +23,7 @@ import glob
 import shlex
 import subprocess
 
-pRegex = re.compile('^\s*([^=\s]+)\s*=([^$]+)$')
+from GLUEInfoProvider import CommonUtils
 
 def init(cfg):
     global config
@@ -41,7 +41,7 @@ def getCREAMServiceInfo():
     try:
         propFile = open('/etc/glite-ce-cream/service.properties')
         for line in propFile:
-            parsed = pRegex.match(line)
+            parsed = CommonUtils.pRegex.match(line)
             if not parsed:
                 continue
             if parsed.group(1) == 'implementation_version':
@@ -141,7 +141,7 @@ def getHostCertInfo():
         if process.returncode == 0:
             result = list()
             for line in stdoutdata.split('\n'):
-                parsed = pRegex.match(line)
+                parsed = CommonUtils.pRegex.match(line)
                 if parsed:
                     result.append(parsed.group(2).strip(' \n\t"'))
             return tuple(result)
@@ -166,7 +166,7 @@ def getTrustAnchors():
             if process.returncode > 0:
                 raise Exception("Error parsing host certificate: " + pErr)
 
-            parsed = pRegex.match(pOut)
+            parsed = CommonUtils.pRegex.match(pOut)
             if parsed:
                 trustedCAs.append(parsed.group(2).strip(' \n\t"'))
     except:
