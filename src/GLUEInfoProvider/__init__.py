@@ -24,5 +24,6 @@ __all__ = [ "CommonUtils",
             "GLUE2ServiceHandler",
             "GLUE2ManagerHandler",
             "GLUE2ComputingEndpointHandler",
-            "GLUE2ComputingShareHandler" ]
+            "GLUE2ComputingShareHandler",
+            "GLUE2ExecEnvironHandler" ]
 
