@@ -75,7 +75,7 @@ objectClass: GlueSchemaVersion
 
     srvDataTable = { 'glite-info-service_version' : '1.7',
                      'glite-info-service_hostname' : siteDefs.ceHost,
-                     'DN' : ServiceInfoUtils.getHostDN()}
+                     'DN' : ServiceInfoUtils.getHostCertInfo()[0]}
     
 
     for srvDataItem in srvDataTable:

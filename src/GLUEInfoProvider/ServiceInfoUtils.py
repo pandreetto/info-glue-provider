@@ -25,6 +25,10 @@ import subprocess
 
 pRegex = re.compile('^\s*([^=\s]+)\s*=([^$]+)$')
 
+def init(cfg):
+    global config
+    config = cfg
+
 def getCREAMServiceInfo():
 
     #
@@ -52,6 +56,44 @@ def getCREAMServiceInfo():
         propFile.close()
 
     return (implVer, ifaceVer)
+    
+def getCREAMServingState():
+
+    try:
+    
+        sqlTpl = 'mysql -B --skip-column-names -h %s -u %s --password="%s" -e "use %s; %s;"' \
+                 % (config['DBHost'], config['MinPrivDBUser'], 
+                    config['MinPrivDBPassword'], config['CreamDBName'], '%s')
+                    
+        
+        query1 = 'select submissionEnabled from db_info;'
+        
+        cmdargs = shlex.split(sqlTpl % query1)
+        process = subprocess.Popen(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        pOut, pErr = process.communicate()
+        if process.returncode > 0:
+            raise Exception("Error detecting serving status: " + pErr)
+        servingCode = int(pOut.strip())
+        
+        query2 = 'select SUBTIME((select startUpTime from db_info),TIMEDIFF(CURRENT_TIME(),UTC_TIME())) from db_info;'
+        
+        cmdargs = shlex.split(sqlTpl % query2)
+        process = subprocess.Popen(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        pOut, pErr = process.communicate()
+        if process.returncode > 0:
+            raise Exception("Error detecting start time: " + pErr)
+        starttime = pOut.strip().replace(' ', 'T') + 'Z'
+        
+        if code == 0:
+            return ('production', starttime)
+        elif code == 1 or code == 2:
+            return ('draining', starttime)
+        return ('closed', starttime)
+
+    except:
+        pass
+        
+    return ('Unknown', 'Unknown')
 
 def getTomcatStatus():
 
@@ -89,20 +131,48 @@ def getTomcatStartTime():
     except:
         return 'Unknown'
 
-def getHostDN():
+def getHostCertInfo():
 
     try:
-        cmd = shlex.split('openssl x509 -in /etc/grid-security/hostcert.pem -noout -subject')
+        cmd = shlex.split('openssl x509 -in /etc/grid-security/hostcert.pem -noout -nameopt RFC2253 -subject -issuer')
         process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         
         stdoutdata, stderrdata = process.communicate()
-        if process.returncode == 0:        
-            return stdoutdata
+        if process.returncode == 0:
+            result = list()
+            for line in stdoutdata.split('\n'):
+                parsed = pRegex.match(line)
+                if parsed:
+                    result.append(parsed.group(2).strip(' \n\t"'))
+            return tuple(result)
         
     except:
         pass
         
-    return 'Unknown'
+    return ('Unknown', 'Unknown')
+    
+def getTrustAnchors():
+    
+    #
+    # TODO cache list
+    #
+    result = list()
+    
+    try:
+        for CAFile in glob.glob('/etc/grid-security/certificates/*.pem'):
+            cmdargs = shlex.split('openssl x509 -in %s -noout -subject -nameopt RFC2253' % CAFile)
+            process = subprocess.Popen(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            pOut, pErr = process.communicate()
+            if process.returncode > 0:
+                raise Exception("Error parsing host certificate: " + pErr)
+
+            parsed = pRegex.match(pOut)
+            if parsed:
+                trustedCAs.append(parsed.group(2).strip(' \n\t"'))
+    except:
+        pass
+    
+    return result
 
 
 
