@@ -43,6 +43,7 @@ class SiteInfoHandler(Thread):
         self.batchsysVer = None
         self.softDir = 'Undefined'
         self.ceDataDir = 'unset'
+        self.argusEnabled = True
 
         self.clusterHost = None
         self.clusterId = None
@@ -153,6 +154,9 @@ class SiteInfoHandler(Thread):
                     
                 if self.parseWorkingArea(key, value):
                     continue
+                    
+                if key == 'USE_ARGUS':
+                    self.argusEnabled = value.lower() == 'yes'
                 
             finally:
                 line = self.stream.readline()
