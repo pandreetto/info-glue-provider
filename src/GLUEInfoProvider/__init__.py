@@ -20,5 +20,7 @@ __all__ = [ "CommonUtils",
             "GLUECEHandler",
             "GLUEClusterHandler",
             "GLUECESEBindHandler",
-            "GLUEServiceHandler" ]
+            "GLUEServiceHandler",
+            "GLUE2ServiceHandler",
+            "GLUE2ManagerHandler" ]
 

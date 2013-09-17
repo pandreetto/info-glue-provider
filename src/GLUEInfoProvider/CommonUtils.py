@@ -17,8 +17,12 @@
 import sys
 import subprocess
 import traceback
+import time
 import ConfigParser
 from threading import Thread
+
+providerName = 'info-glue-provider'
+providerVersion = '1.0'
 
 class ErrorHandler(Thread):
 
@@ -113,6 +117,9 @@ def errorMsgFromTrace():
     result = '%s (%s)' % (evalue, trMessage)
     return result
 
+def getNow():
+
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 class VOData:
 

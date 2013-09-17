@@ -36,9 +36,11 @@ class SiteInfoHandler(Thread):
         
         self.ceHost = socket.getfqdn()
         self.cePort = 8443
+        self.compServiceID = None
         self.siteName = None
         self.jobmanager = None
         self.batchsys = None
+        self.batchsysVer = None
         self.softDir = 'Undefined'
         self.ceDataDir = 'unset'
 
@@ -59,6 +61,16 @@ class SiteInfoHandler(Thread):
         self.resourceTable['--'] = CommonUtils.CEResource()
         
         self.seAccess = dict()
+        
+        self.wAreaShared = None
+        self.wAreaGuaranteed = None
+        self.wAreaTotal = -1
+        self.wAreaFree = -1
+        self.wAreaLifeTime = -1
+        self.wAreaMultiSlotTotal = -1
+        self.wAreaMultiSlotFree = -1
+        self.wAreaMultiSlotLifeTime = -1
+        
 
     def setStream(self, stream):
         self.stream = stream
@@ -81,6 +93,10 @@ class SiteInfoHandler(Thread):
                     self.ceHost = value
                     continue
 
+                if key == 'COMPUTING_SERVICE_ID':
+                    self.compServiceID = value
+                    continue
+
                 if key == 'SITE_NAME':
                     self.siteName = value
                     continue
@@ -91,6 +107,10 @@ class SiteInfoHandler(Thread):
                 
                 if key == 'CE_BATCH_SYS':
                     self.batchsys = value
+                    continue
+                
+                if key == 'BATCH_VERSION':
+                    self.batchsysVer = value
                     continue
 
                 if self.parseCEHostSection(key, value):
@@ -130,6 +150,9 @@ class SiteInfoHandler(Thread):
 
                 if self.parseSEAccess(key, value):
                     continue
+                    
+                if self.parseWorkingArea(key, value):
+                    continue
                 
             finally:
                 line = self.stream.readline()
@@ -154,6 +177,12 @@ class SiteInfoHandler(Thread):
         #
         # TODO merge resource tags from files (replace lcg-info-dynamic-software)
         #
+        
+        if not self.compServiceID:
+            self.compServiceID = self.ceHost + '_ComputingElement'
+        
+        if not self.batchsys:
+            self.batchsys = self.jobmanager
 
     def parseCEHostSection(self, key, value):
     
@@ -448,8 +477,28 @@ class SiteInfoHandler(Thread):
                 
         return True
 
-
-
+    def parseWorkingArea(self, key, value):
+        if not key.startswith('WORKING_AREA_'):
+            return False
+        
+        if key == 'WORKING_AREA_SHARED':
+            self.wAreaShared = value.lower() == 'true'
+        elif key == 'WORKING_AREA_GUARANTEED':
+            self.wAreaGuaranteed = value.lower() == 'true'
+        elif key == 'WORKING_AREA_TOTAL':
+            self.wAreaTotal = int(value)
+        elif key == 'WORKING_AREA_FREE':
+            self.wAreaFree = int(value)
+        elif key == 'WORKING_AREA_LIFETIME':
+            self.wAreaLifeTime = int(value)
+        elif key == 'WORKING_AREA_MULTISLOT_TOTAL':
+            self.wAreaMultiSlotTotal = int(value)
+        elif key == 'WORKING_AREA_MULTISLOT_FREE':
+            self.wAreaMultiSlotFree = int(value)
+        elif key == 'WORKING_AREA_MULTISLOT_LIFETIME':
+            self.wAreaMultiSlotLifeTime = int(value)
+            
+        return True
 
 
 
