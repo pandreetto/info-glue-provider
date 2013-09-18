@@ -35,19 +35,16 @@ objectClass: GlueSchemaVersion
 
         out.write("GlueCESEBindGroupCEUniqueID: %s\n" % glueceID)
         
-        for seItem in siteDefs.seList:
-            out.write("GlueCESEBindGroupSEUniqueID: %s\n" % seItem)
+        for seItem in siteDefs.seAccess:
+            out.write("GlueCESEBindGroupSEUniqueID: %s\n" % siteDefs.seAccess[seItem].host)
         out.write("GlueSchemaVersionMajor: 1\n")
         out.write("GlueSchemaVersionMinor: 3\n")
         out.write("\n")
 
 
-    for seItem in siteDefs.seList:
+    for seItem in siteDefs.seAccess:
         
-        if seItem in siteDefs.seAccess:
-            accessPoint = siteDefs.seAccess[seItem]
-        else:
-            accessPoint = 'n.a.'
+        accessPoint = siteDefs.seAccess[seItem].getAccessPoint()
             
         for queue in siteDefs.queues[siteDefs.ceHost]:
         

@@ -51,7 +51,6 @@ class SiteInfoHandler(Thread):
         self.clusterCEList = list()
         
         self.queues = dict()
-        self.seList = list()
         self.capabilities = list()
         self.acbrTable = dict()
         
@@ -60,7 +59,8 @@ class SiteInfoHandler(Thread):
         # temporary register the "anonymous" resource
         self.resourceTable['--'] = CommonUtils.CEResource()
         
-        self.seAccess = dict()
+        self.seAccess = dict()      # one item per SE host!!
+        self.seRank = 1
         
         self.wAreaShared = None
         self.wAreaGuaranteed = None
@@ -145,7 +145,10 @@ class SiteInfoHandler(Thread):
                     continue
 
                 if key == 'SE_LIST':
-                    self.seList += value.strip('\'"').split()
+                    for seItem in value.strip('\'"').split():
+                        self.seAccess[seItem] = CommonUtils.SEData(seItem)
+                        self.seAccess[seItem].rank = self.seRank
+                        self.seRank += 1
                     continue
 
                 if self.parseSEAccess(key, value):
@@ -472,11 +475,20 @@ class SiteInfoHandler(Thread):
     def parseSEAccess(self, key, value):
         if key <> 'SE_MOUNT_INFO_LIST':
             return False
-            
+        
+        if value.lower() == 'none':
+            return True
+        
         for mItem in value.strip('\'"').split():
             parsed = self.mRegex.match(mItem)
             if parsed:
-                self.seAccess[parsed.group(1)] = '%s,%s' % (parsed.group(3), parsed.group(2))
+                seItem = parsed.group(1)
+                if not seItem in self.seAccess:
+                    self.seAccess[seItem] = CommonUtils.SEData(seItem)
+                    self.seAccess[seItem].rank = self.seRank
+                    self.seRank += 1
+                self.seAccess[seItem].export = parsed.group(2)
+                self.seAccess[seItem].mount = parsed.group(3)
                 
         return True
 

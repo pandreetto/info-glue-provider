@@ -16,7 +16,7 @@
 
 import sys
 
-from GLUEInfoProvider import CommonUtils
+from GLUEInfoProvider import ServiceInfoUtils
 
 MAX_RESPONSE_TIME = 2146660842
 MAX_JOB_NUMBER = 444444
@@ -25,6 +25,11 @@ MAX_POLICY_NUMBER = 999999999
 def process(siteDefs, out=sys.stdout):
 
     for queue in siteDefs.queues[siteDefs.ceHost]:
+    
+        if len(siteDefs.seAccess) > 0:
+            bestSE = min(siteDefs.seAccess.values())
+        else:
+            bestSE = None
     
         glueceDN = 'GlueCEUniqueID=%s:%d/cream-%s-%s,mds-vo-name=resource,o=grid' % \
                    (siteDefs.ceHost, siteDefs.cePort, siteDefs.jobmanager, queue)
@@ -49,7 +54,7 @@ objectClass: GlueSchemaVersion
         out.write('GlueCEHostingCluster: %s\n' % siteDefs.ceHost)
         out.write('GlueCEName: %s\n' % queue)
         out.write('GlueCEImplementationName: CREAM\n')
-        out.write('GlueCEImplementationVersion: %s\n' % CommonUtils.getCREAMServiceInfo()[0])
+        out.write('GlueCEImplementationVersion: %s\n' % ServiceInfoUtils.getCREAMServiceInfo()[0])
         for capa in siteDefs.capabilities:
             out.write('GlueCECapability: %s\n' % capa)
             
@@ -68,8 +73,8 @@ objectClass: GlueSchemaVersion
             out.write('GlueCEInfoApplicationDir: %s\n' % siteDefs.softDir)
         if siteDefs.ceDataDir and len(siteDefs.ceDataDir) > 0:
             out.write('GlueCEInfoDataDir: %s\n' % siteDefs.ceDataDir)
-        if len(siteDefs.seList) > 0:
-            out.write('GlueCEInfoDefaultSE: %s\n' % siteDefs.seList[0])
+        if bestSE <> None:
+            out.write('GlueCEInfoDefaultSE: %s\n' % bestSE.host)
             
         out.write('GlueCEStateEstimatedResponseTime: %d\n' % MAX_RESPONSE_TIME)
         out.write('GlueCEStateWorstResponseTime: %d\n' % MAX_RESPONSE_TIME)
@@ -130,8 +135,8 @@ objectClass: GlueSchemaVersion
                 tmpSE = siteDefs.voParams[voNameLC].defaultSE
                 tmpSDir = siteDefs.voParams[voNameLC].softDir
                 
-            if not tmpSE and len(siteDefs.seList) > 0:
-                tmpsSE = siteDefs.seList
+            if not tmpSE and bestSE <> None:
+                tmpSE = bestSE.host
             
             if not tmpSDir:
                 tmpSDir = siteDefs.softDir

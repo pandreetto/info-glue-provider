@@ -191,9 +191,25 @@ class CEResource:
         self.tmpDir = None
         self.WNDir = None
         
+class SEData:
 
+    def __init__(self, host):
+        self.host = host
+        self.export = None
+        self.mount = None
+        self.rank = 0       #used to select the closest SE
 
-
+    def getAccessPoint(self):
+    
+        if self.export == None or self.mount == None:
+            return 'n.a'
+            
+        return '%s,%s' % (self.mount, self.export)
+        
+    def __cmp__(self, other):
+        if other == None:
+            return self.rank
+        return self.rank - other.rank
 
 
 
