@@ -136,10 +136,6 @@ class SiteInfoHandler(Thread):
                 if self.parseCEHostSection(key, value):
                     continue
                 
-                if key == 'VO_SW_DIR':
-                    self.softDir = value
-                    continue
-
                 if key == 'CE_DATADIR':
                     self.ceDataDir = value
                     continue
@@ -243,16 +239,22 @@ class SiteInfoHandler(Thread):
         if not key.startswith('VO_'):
             return False
     
-        idx = key.find('_', 9)
-        voLC = key[9:idx]
+        if key == 'VO_SW_DIR':
+            self.softDir = value
+            return True
+
+        if key.endswith('_SW_DIR'):
         
-        if not voLC in self.voParams:
-            self.voParams[voLC] = CommonUtils.VOParams()
-    
-        if key.endswith('SW_DIR'):
-            self.voParams[voLC].softDir = value           
-        elif key.endswith('DEFAULT_SE'):
-            self.voParams[voLC].defaultSE = value
+            voName = self.voParamTable[key[3:-7]]
+            if not voName in self.voParams:
+                self.voParams[voName] = CommonUtils.VOParams()
+            self.voParams[voName].softDir = value
+                       
+        elif key.endswith('_DEFAULT_SE'):
+            voName = self.voParamTable[key[3:-11]]
+            if not voName in self.voParams:
+                self.voParams[voName] = CommonUtils.VOParams()
+            self.voParams[voName].defaultSE = value
         
         return True
             
@@ -569,7 +571,8 @@ def parse(config):
                 for line in inFile:
                     tmps = line.strip()
                     if len(tmps) > 0 and not tmps.startswith('#'):
-                        outFile.write('VO_%s_%s' % (fileItem.lower(), line))
+                        normName = fileItem.replace('.', '_').replace('-', '_').upper()
+                        outFile.write('VO_%s_%s' % (normName, line))
                 inFile.close()
 
             outFile.write('''

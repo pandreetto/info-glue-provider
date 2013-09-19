@@ -107,7 +107,7 @@ objectClass: GlueSchemaVersion
         for vogrp in siteDefs.ruleTable.getVOList(siteDefs.ceHost, queue):
             
             voviewID = vogrp.getNormName()
-            voNameLC = vogrp.getVOName().lower()
+            voName = vogrp.getVOName()
             
             out.write("dn:GlueVOViewLocalID=%s,%s\n" % (voviewID, glueceDN))
             
@@ -131,9 +131,9 @@ objectClass: GlueSchemaVersion
             tmpSE = None
             tmpSDir = None
             
-            if voNameLC in siteDefs.voParams:
-                tmpSE = siteDefs.voParams[voNameLC].defaultSE
-                tmpSDir = siteDefs.voParams[voNameLC].softDir
+            if voName in siteDefs.voParams:
+                tmpSE = siteDefs.voParams[voName].defaultSE
+                tmpSDir = siteDefs.voParams[voName].softDir
                 
             if not tmpSE and bestSE <> None:
                 tmpSE = bestSE.host
