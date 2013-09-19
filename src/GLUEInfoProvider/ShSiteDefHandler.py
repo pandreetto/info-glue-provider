@@ -33,6 +33,11 @@ class SiteInfoHandler(Thread):
         self.errList = list()
         self.mRegex = re.compile('([^:]+):([^,]+),(.+)')
         
+        self.ceParamTable = dict()
+        self.qParamTable = dict()
+        self.voParamTable = dict()
+        self.scParamTable = dict()
+        
         self.ceHost = socket.getfqdn()
         self.cePort = 8443
         self.compServiceID = None
@@ -88,6 +93,22 @@ class SiteInfoHandler(Thread):
                 
                 key = parsed.group(1)
                 value = parsed.group(2).strip()
+                
+                if key.startswith('PARAM_CE_'):
+                    self.ceParamTable[key[9:]] = value
+                    continue
+                
+                if key.startswith('PARAM_QUEUE_'):
+                    self.qParamTable[key[12:]] = value
+                    continue
+                
+                if key.startswith('PARAM_VO_'):
+                    self.voParamTable[key[9:]] = value
+                    continue
+                
+                if key.startswith('PARAM_SC_'):
+                    self.scParamTable[key[9:]] = value
+                    continue
                 
                 if key == 'CE_HOST':
                     self.ceHost = value
@@ -195,26 +216,26 @@ class SiteInfoHandler(Thread):
         if not key.startswith('CE_HOST_'):
             return False
     
-        if key.endswith('QUEUES'):
-            self.queues[self.ceHost] = value.strip('\'"').split()
+        if key.endswith('_QUEUES'):
+            
+            hostNorm = key[8:-7]
+            self.queues[self.ceParamTable[hostNorm]] = value.strip('\'"').split()
             return True
             
-        if key.endswith('CE_AccessControlBaseRule'):
-            idx = key.find('QUEUE')
+        if key.endswith('_CE_AccessControlBaseRule'):
+            idx = key.find('_QUEUE_')
             if idx < 0:
                 return True
                 
-            queueUC = key[idx+6:-25]
-            #
-            # The variable **QUEUES must be read before ACBR !!!
-            #
-            for tmpq in self.queues[self.ceHost]:
-                if tmpq.upper() == queueUC:
-                    voRawList = value.strip('\'"').split()
-                    self.acbrTable[(self.ceHost, tmpq)] = map(CommonUtils.VOData, voRawList)
+            queueNorm = key[idx+7:-25]
+            hostNorm = key[8:idx]
+            
+            voRawList = value.strip('\'"').split()
+            acbrItem = (self.ceParamTable[hostNorm], self.qParamTable[queueNorm])
+            self.acbrTable[acbrItem] = map(CommonUtils.VOData, voRawList)
             return True
                      
-        if key.endswith('CE_InfoJobManager'):
+        if key.endswith('_CE_InfoJobManager'):
             self.jobmanager = value
         
         return True
@@ -222,7 +243,7 @@ class SiteInfoHandler(Thread):
 
     def parseVOSection(self, key, value):
     
-        if not key.startswith('VOPARAMS_'):
+        if not key.startswith('VO_'):
             return False
     
         idx = key.find('_', 9)
@@ -265,8 +286,7 @@ class SiteInfoHandler(Thread):
 
         if key.endswith('_SUBCLUSTERS'):
             for scId in value.strip('\'"').split():
-                newId = scId.replace('-','_').replace('.','_').upper()
-                self.resourceTable[newId] = CommonUtils.CEResource()
+                self.resourceTable[scId] = CommonUtils.CEResource()
 
         return True
         
@@ -276,12 +296,12 @@ class SiteInfoHandler(Thread):
             return False
         
         if key.endswith('_SUBCLUSTER_UniqueID'):
-            scId = key[11:-20]
+            scId = self.scParamTable[key[11:-20]]
             self.resourceTable[scId].id = value
             return True
 
         if key.endswith('_HOST_ApplicationSoftwareRunTimeEnvironment'):
-            scId = key[11:-43]
+            scId = self.scParamTable[key[11:-43]]
             for item in value.strip('$\'"').split():
                 if item.endswith("\\n"):
                     item = item[:-2]
@@ -290,102 +310,102 @@ class SiteInfoHandler(Thread):
             return True
 
         if key.endswith('_HOST_ArchitectureSMPSize'):
-            scId = key[11:-25]
+            scId = self.scParamTable[key[11:-25]]
             self.resourceTable[scId].smpSize = int(value)
             return True
 
         if key.endswith('_HOST_ArchitecturePlatformType'):
-            scId = key[11:-30]
+            scId = self.scParamTable[key[11:-30]]
             self.resourceTable[scId].osArch = value
             return True
 
         if key.endswith('_HOST_BenchmarkSF00'):
-            scId = key[11:-19]
+            scId = self.scParamTable[key[11:-19]]
             self.resourceTable[scId].benchSF00 = float(value)
             return True
 
         if key.endswith('_HOST_BenchmarkSI00'):
-            scId = key[11:-19]
+            scId = self.scParamTable[key[11:-19]]
             self.resourceTable[scId].benchSI00 = float(value)
             return True
 
         if key.endswith('_HOST_MainMemoryRAMSize'):
-            scId = key[11:-23]
+            scId = self.scParamTable[key[11:-23]]
             self.resourceTable[scId].mainMemSize = int(value)
             return True
 
         if key.endswith('_HOST_MainMemoryVirtualSize'):
-            scId = key[11:-27]
+            scId = self.scParamTable[key[11:-27]]
             self.resourceTable[scId].mainVirtSize = int(value)
             return True
 
         if key.endswith('_HOST_NetworkAdapterInboundIP'):
-            scId = key[11:-29]
+            scId = self.scParamTable[key[11:-29]]
             self.resourceTable[scId].inBound = value.upper() == 'TRUE'
             return True
 
         if key.endswith('_HOST_NetworkAdapterOutboundIP'):
-            scId = key[11:-30]
+            scId = self.scParamTable[key[11:-30]]
             self.resourceTable[scId].outBound  = value.upper() == 'TRUE'
             return True
 
         if key.endswith('_HOST_OperatingSystemName'):
-            scId = key[11:-25]
+            scId = self.scParamTable[key[11:-25]]
             self.resourceTable[scId].osName = value
             return True
 
         if key.endswith('_HOST_OperatingSystemRelease'):
-            scId = key[11:-28]
+            scId = self.scParamTable[key[11:-28]]
             self.resourceTable[scId].osRelease = value
             return True
 
         if key.endswith('_HOST_OperatingSystemVersion'):
-            scId = key[11:-28]
+            scId = self.scParamTable[key[11:-28]]
             self.resourceTable[scId].osVersion = value
             return True
 
         if key.endswith('_HOST_ProcessorClockSpeed'):
-            scId = key[11:-25]
+            scId = self.scParamTable[key[11:-25]]
             self.resourceTable[scId].procSpeed = int(value)
             return True
 
         if key.endswith('_HOST_ProcessorModel'):
-            scId = key[11:-20]
+            scId = self.scParamTable[key[11:-20]]
             self.resourceTable[scId].procModel = value
             return True
 
         if key.endswith('_HOST_ProcessorOtherDescription'):
-            scId = key[11:-31]
+            scId = self.scParamTable[key[11:-31]]
             self.resourceTable[scId].procDescr = value
             return True
 
         if key.endswith('_HOST_ProcessorVendor'):
-            scId = key[11:-21]
+            scId = self.scParamTable[key[11:-21]]
             self.resourceTable[scId].procVendor = value
             return True
 
         if key.endswith('_SUBCLUSTER_Name'):
-            scId = key[11:-16]
+            scId = self.scParamTable[key[11:-16]]
             self.resourceTable[scId].name = value
             return True
 
         if key.endswith('_SUBCLUSTER_PhysicalCPUs'):
-            scId = key[11:-24]
+            scId = self.scParamTable[key[11:-24]]
             self.resourceTable[scId].phyCPU = int(value)
             return True
 
         if key.endswith('_SUBCLUSTER_LogicalCPUs'):
-            scId = key[11:-23]
+            scId = self.scParamTable[key[11:-23]]
             self.resourceTable[scId].logCPU = int(value)
             return True
 
         if key.endswith('_SUBCLUSTER_TmpDir'):
-            scId = key[11:-18]
+            scId = self.scParamTable[key[11:-18]]
             self.resourceTable[scId].tmpDir = value
             return True
 
         if key.endswith('_SUBCLUSTER_WNTmpDir'):
-            scId = key[11:-20]
+            scId = self.scParamTable[key[11:-20]]
             self.resourceTable[scId].WNDir = value
             return True
 
@@ -552,10 +572,49 @@ def parse(config):
                 for line in inFile:
                     tmps = line.strip()
                     if len(tmps) > 0 and not tmps.startswith('#'):
-                        outFile.write('VOPARAMS_%s_%s' % (fileItem.lower(), line))
+                        outFile.write('VO_%s_%s' % (fileItem.lower(), line))
                 inFile.close()
 
-            outFile.write('\nset\n')
+            outFile.write('''
+################################################################################
+# Normalization table
+# for host names, vo names and queues
+# see https://twiki.cern.ch/twiki/bin/view/LCG/Site-info_configuration_variables
+################################################################################
+
+for CLUSTER_RAW in ${CLUSTERS}; do
+    CLUSTER=`echo ${CLUSTER_RAW} | sed -e 's/-/_/g' -e 's/\./_/g' | tr '[:lower:]' '[:upper:]'`
+done
+
+if [ ! "x${CE_HOST}" == "x" ] ; then
+    CE_name=`echo ${CE_HOST} | sed -e 's/-/_/g' -e 's/\./_/g' | tr '[:upper:]' '[:lower:]'`
+    echo "PARAM_CE_${CE_name}=${CE_HOST}"
+fi
+
+for CE_RAW in `eval echo "\\\$CLUSTER_${CLUSTER}_CE_HOSTS"`; do
+    CE_name=`echo ${CE_RAW} | sed -e 's/-/_/g' -e 's/\./_/g' | tr '[:upper:]' '[:lower:]'`
+    echo "PARAM_CE_${CE_name}=${CE_RAW}"
+    
+    for QUEUE_RAW in `eval echo "\\\$CE_HOST_${CE_name}_QUEUES"`; do
+        QUEUE_name=`echo ${QUEUE_RAW} | sed -e 's/[\.-]/_/g' |  tr '[:lower:]' '[:upper:]'`
+        echo "PARAM_QUEUE_${QUEUE_name}=${QUEUE_RAW}"
+    done
+
+done
+
+for SCLUSTER_RAW in `eval echo "\\\$CLUSTER_${CLUSTER}_SUBCLUSTERS"`; do
+    SCLUSTER_name=`echo ${SCLUSTER_RAW} | sed -e 's/-/_/g' -e 's/\./_/g' | tr '[:lower:]' '[:upper:]'`
+    echo "PARAM_SC_${SCLUSTER_name}=${SCLUSTER_RAW}"
+done
+
+for VO_RAW in `eval echo "\\\$VOS"`; do
+    VO_name=`echo ${VO_RAW} | sed -e 's/-/_/g' -e 's/\./_/g' | tr '[:lower:]' '[:upper:]'`
+    echo "PARAM_VO_${VO_name}=${VO_RAW}"
+done
+
+set
+
+''')
         
         finally:
             if inFile:
