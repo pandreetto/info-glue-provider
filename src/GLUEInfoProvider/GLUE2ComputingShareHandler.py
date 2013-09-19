@@ -31,10 +31,9 @@ def process(siteDefs, out=sys.stdout):
 
     now = CommonUtils.getNow()
     
-    for acbrItem in siteDefs.acbrTable:
+    for queue in siteDefs.ruleTable.getQueueList():
     
-        queue = acbrItem[1]
-        voList = siteDefs.acbrTable[acbrItem]
+        ceList, voList = siteDefs.ruleTable.getHostAndVOList(queue)
         
         #
         # For the moment we consider just one host per share
@@ -90,9 +89,10 @@ def process(siteDefs, out=sys.stdout):
             for resItem in siteDefs.resourceTable.values():
                 out.write("GLUE2ShareResourceForeignKey: %s\n" % resItem.id)
                 out.write("GLUE2ComputingShareExecutionEnvironmentForeignKey: %s\n" % resItem.id)
-                
-            out.write("GLUE2ShareEndpointForeignKey: %s_org.glite.ce.CREAM\n" % siteDefs.ceHost)
-            out.write("GLUE2ComputingShareComputingEndpointForeignKey: %s_org.glite.ce.CREAM\n" % siteDefs.ceHost)
+            
+            for ceHostItem in ceList:
+                out.write("GLUE2ShareEndpointForeignKey: %s_org.glite.ce.CREAM\n" % ceHostItem)
+                out.write("GLUE2ComputingShareComputingEndpointForeignKey: %s_org.glite.ce.CREAM\n" % ceHostItem)
             
             out.write("GLUE2ShareServiceForeignKey: %s\n" % siteDefs.compServiceID)
             out.write("GLUE2ComputingShareComputingServiceForeignKey: %s\n" % siteDefs.compServiceID)

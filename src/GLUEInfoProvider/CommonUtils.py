@@ -212,5 +212,56 @@ class SEData:
         return self.rank - other.rank
 
 
+class ResourceRuleTable:
+
+    def __init__(self):
+        self.ceTable = dict()
+        self.qTable = dict()
+    
+    def add(self, ceHost, queue, vogrp):
+        
+        if not ceHost in self.ceTable:
+            self.ceTable[ceHost] = set()
+        self.ceTable[ceHost].add(queue)
+        
+        if not queue in self.qTable:
+            self.qTable[queue] = set()
+        self.qTable[queue].add(vogrp)
+    
+    def getVOList(self, ceHost=None, queue=None):
+    
+        if ceHost and queue in self.ceTable[ceHost]:
+            return self.qTable[queue]
+            
+        if not ceHost and not queue:
+            result = set()
+            for item in self.qTable.values():
+                result = result | item
+            return result
+            
+        return list()
+    
+    def getShareCount(self):
+        result = 0
+        for qItem in self.qTable.values():
+            result += len(qItem)
+        return result
+        
+    def getQueueList(self, ceHost=None):
+        if ceHost:
+            return self.ceTable[ceHost]
+        
+        return self.qTable.keys()
+        
+    def getHostAndVOList(self, queue):
+    
+        ceList = list()
+        for hostName in self.ceTable:
+            if queue in self.ceTable[hostName]:
+                ceList.append(hostName)
+            
+        return (ceList, self.qTable[queue])
+
+
 
 

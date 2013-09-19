@@ -41,10 +41,11 @@ objectClass: GlueSchemaVersion
     out.write('GlueClusterName: %s\n' % siteDefs.clusterName)
     out.write('GlueForeignKey: GlueSiteUniqueID=%s\n' % siteDefs.clusterSite)
     
-    for queue in siteDefs.queues[siteDefs.ceHost]:
+    qList = siteDefs.ruleTable.getQueueList(siteDefs.ceHost)
+    for queue in qList:
         glueceID = '%s:%d/cream-%s-%s' % (siteDefs.ceHost, siteDefs.cePort, siteDefs.jobmanager, queue)
         out.write('GlueForeignKey: GlueCEUniqueID=%s\n' % glueceID)
-    for queue in siteDefs.queues[siteDefs.ceHost]:
+    for queue in qList:
         glueceID = '%s:%d/cream-%s-%s' % (siteDefs.ceHost, siteDefs.cePort, siteDefs.jobmanager, queue)
         out.write('GlueClusterService: %s\n' % glueceID)
     

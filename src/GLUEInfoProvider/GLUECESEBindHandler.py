@@ -21,7 +21,7 @@ from GLUEInfoProvider import CommonUtils
 
 def process(siteDefs, out=sys.stdout):
 
-    for queue in siteDefs.queues[siteDefs.ceHost]:
+    for queue in siteDefs.ruleTable.getQueueList(siteDefs.ceHost):
 
         glueceID = '%s:%d/cream-%s-%s' % (siteDefs.ceHost, siteDefs.cePort, siteDefs.jobmanager, queue)
         glueceseGrpDN = 'GlueCESEBindGroupCEUniqueID=%s,mds-vo-name=resource,o=grid' % glueceID
@@ -46,7 +46,7 @@ objectClass: GlueSchemaVersion
         
         accessPoint = siteDefs.seAccess[seItem].getAccessPoint()
             
-        for queue in siteDefs.queues[siteDefs.ceHost]:
+        for queue in siteDefs.ruleTable.getQueueList(siteDefs.ceHost):
         
             glueceID = '%s:%d/cream-%s-%s' % (siteDefs.ceHost, siteDefs.cePort, siteDefs.jobmanager, queue)
             out.write('dn: GlueCESEBindSEUniqueID=%s,GlueCESEBindGroupCEUniqueID=%s,mds-vo-name=resource,o=grid\n' 

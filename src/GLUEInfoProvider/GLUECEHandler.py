@@ -24,7 +24,7 @@ MAX_POLICY_NUMBER = 999999999
 
 def process(siteDefs, out=sys.stdout):
 
-    for queue in siteDefs.queues[siteDefs.ceHost]:
+    for queue in siteDefs.ruleTable.getQueueList(siteDefs.ceHost):
     
         if len(siteDefs.seAccess) > 0:
             bestSE = min(siteDefs.seAccess.values())
@@ -58,7 +58,7 @@ objectClass: GlueSchemaVersion
         for capa in siteDefs.capabilities:
             out.write('GlueCECapability: %s\n' % capa)
             
-        for acbr in siteDefs.acbrTable[(siteDefs.ceHost, queue)]:
+        for acbr in siteDefs.ruleTable.getVOList(siteDefs.ceHost, queue):
             out.write('GlueCEAccessControlBaseRule: %s\n' % repr(acbr))
         
         out.write('GlueCEInfoGatekeeperPort: %d\n' % siteDefs.cePort)
@@ -104,7 +104,7 @@ objectClass: GlueSchemaVersion
         out.write('\n')
 
     
-        for vogrp in siteDefs.acbrTable[(siteDefs.ceHost, queue)]:
+        for vogrp in siteDefs.ruleTable.getVOList(siteDefs.ceHost, queue):
             
             voviewID = vogrp.getNormName()
             voNameLC = vogrp.getVOName().lower()

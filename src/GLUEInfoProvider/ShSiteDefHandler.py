@@ -55,9 +55,8 @@ class SiteInfoHandler(Thread):
         self.clusterSite = None
         self.clusterCEList = list()
         
-        self.queues = dict()
         self.capabilities = list()
-        self.acbrTable = dict()
+        self.ruleTable = CommonUtils.ResourceRuleTable()
         
         self.voParams = dict()
         self.resourceTable = dict()
@@ -216,12 +215,6 @@ class SiteInfoHandler(Thread):
         if not key.startswith('CE_HOST_'):
             return False
     
-        if key.endswith('_QUEUES'):
-            
-            hostNorm = key[8:-7]
-            self.queues[self.ceParamTable[hostNorm]] = value.strip('\'"').split()
-            return True
-            
         if key.endswith('_CE_AccessControlBaseRule'):
             idx = key.find('_QUEUE_')
             if idx < 0:
@@ -231,8 +224,12 @@ class SiteInfoHandler(Thread):
             hostNorm = key[8:idx]
             
             voRawList = value.strip('\'"').split()
-            acbrItem = (self.ceParamTable[hostNorm], self.qParamTable[queueNorm])
-            self.acbrTable[acbrItem] = map(CommonUtils.VOData, voRawList)
+            
+            for vogrp in voRawList:
+                self.ruleTable.add(self.ceParamTable[hostNorm], 
+                                   self.qParamTable[queueNorm], 
+                                   CommonUtils.VOData(vogrp))
+            
             return True
                      
         if key.endswith('_CE_InfoJobManager'):

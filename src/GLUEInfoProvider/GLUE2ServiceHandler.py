@@ -29,9 +29,7 @@ def process(siteDefs, out=sys.stdout):
     srvType = 'org.glite.ce.CREAM'
     
     endpointCount = 2  # CREAM + RTEPublisher (CEMon ?)
-    shareCount = 0
-    for tmpl in siteDefs.acbrTable.values():
-        shareCount += len(tmpl)
+    shareCount = siteDefs.ruleTable.getShareCount()
     resourceCount = len(siteDefs.resourceTable)
     
     out.write("dn: GLUE2ServiceID=%s,GLUE2GroupID=resource,o=glue\n" % siteDefs.compServiceID)

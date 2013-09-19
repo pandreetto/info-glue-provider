@@ -26,13 +26,6 @@ from GLUEInfoProvider import ServiceInfoUtils
 # and the related YAIM function config_info_service_cream_ce
 #
 
-def getAllVO(siteDefs):
-    result = set()
-    for tmpl in siteDefs.acbrTable.values():
-        for item in tmpl:
-            result.add(item) 
-    return result
-
 def process(siteDefs, out=sys.stdout):
 
     srvType = 'org.glite.ce.CREAM'
@@ -61,7 +54,7 @@ objectClass: GlueSchemaVersion
     out.write('GlueServiceSemantics: https://edms.cern.ch/document/595770\n')
     out.write('GlueServiceStartTime: %s\n' % ServiceInfoUtils.getTomcatStartTime())
     
-    voList = getAllVO(siteDefs)
+    voList = siteDefs.ruleTable.getVOList()
     for voItem in voList:
         out.write('GlueServiceOwner: %s\n' % voItem.getVOName())
     for voItem in voList:

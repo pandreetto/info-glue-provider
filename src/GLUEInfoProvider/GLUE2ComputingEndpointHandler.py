@@ -26,13 +26,6 @@ from GLUEInfoProvider import ServiceInfoUtils
 # and the related YAIM function config_cream_gip_glue2
 #
 
-def getAllVO(siteDefs):
-    result = set()
-    for tmpl in siteDefs.acbrTable.values():
-        for item in tmpl:
-            result.add(item) 
-    return result
-
 def process(siteDefs, out=sys.stdout):
 
     now = CommonUtils.getNow()
@@ -112,7 +105,7 @@ def process(siteDefs, out=sys.stdout):
     # The policy scheme needs a name: arbitrarily define this as org.glite.standard
     out.write("GLUE2PolicyScheme: org.glite.standard\n")
     
-    voList = getAllVO(siteDefs)
+    voList = siteDefs.ruleTable.getVOList()
     for voItem in voList:
         out.write('GLUE2PolicyUserDomainForeignKey: %s\n' % voItem.getVOName())
     for voItem in voList:
