@@ -29,6 +29,9 @@ MAX_POLICY_NUMBER = 999999999
 
 def process(siteDefs, out=sys.stdout):
 
+    if siteDefs.creamStandAloneMode(siteDefs.ceHost):
+        return
+
     now = CommonUtils.getNow()
     
     for queue in siteDefs.ruleTable.getQueueList():

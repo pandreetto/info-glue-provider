@@ -176,6 +176,9 @@ class SiteInfoHandler(Thread):
                 if key == 'USE_ARGUS':
                     self.argusEnabled = value.lower() == 'yes'
                 
+                if key == 'CREAM_CLUSTER_MODE' and value.lower() == 'no':
+                    self.clusterHost = None
+                
             finally:
                 line = self.stream.readline()
 
@@ -535,6 +538,17 @@ class SiteInfoHandler(Thread):
         return True
 
 
+    def clusterStandAloneMode(self):
+        return self.clusterHost and not self.clusterHost in self.ruleTable.getCEHostList()
+    
+    def creamStandAloneMode(self, creamHost):
+        return self.clusterHost and self.clusterHost <> creamHost
+    
+    def clusterMixedMode(self, creamHost):
+        return self.clusterHost and self.clusterHost == creamHost
+    
+    def noClusterMode(self):
+        return not self.clusterHost
 
 def parse(config):
     

@@ -28,6 +28,12 @@ from GLUEInfoProvider import ServiceInfoUtils
 
 def process(siteDefs, out=sys.stdout):
 
+    if siteDefs.clusterStandAloneMode():
+        #
+        # Endpoint is not available on cluster node alone
+        #
+        return
+
     now = CommonUtils.getNow()
 
     endPointID = siteDefs.ceHost + '_org.glite.ce.CREAM'

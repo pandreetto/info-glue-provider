@@ -261,6 +261,9 @@ class ResourceRuleTable:
                 ceList.append(hostName)
             
         return (ceList, self.qTable[queue])
+    
+    def getCEHostList(self):
+        return self.ceTable.keys()
 
 
 

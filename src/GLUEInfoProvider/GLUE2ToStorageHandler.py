@@ -27,6 +27,9 @@ from GLUEInfoProvider import CommonUtils
 
 def process(siteDefs, out=sys.stdout):
 
+    if siteDefs.creamStandAloneMode(siteDefs.ceHost):
+        return
+
     now = CommonUtils.getNow()
     
     for seData in siteDefs.seAccess.values():

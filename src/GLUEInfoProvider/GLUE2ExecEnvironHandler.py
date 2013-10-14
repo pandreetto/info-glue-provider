@@ -53,6 +53,9 @@ def parseProcDescr(procDescr):
 
 def process(siteDefs, out=sys.stdout):
 
+    if siteDefs.creamStandAloneMode(siteDefs.ceHost):
+        return
+
     now = CommonUtils.getNow()
     
     osType = 'linux'
