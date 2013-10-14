@@ -16,25 +16,94 @@
 # limitations under the License.
 
 import sys
+import getopt
 
-from GLUEInfoProvider import CommonUtils
-from GLUEInfoProvider import ShSiteDefHandler
-from GLUEInfoProvider import GLUECEHandler
-from GLUEInfoProvider import GLUEClusterHandler
+from GLUEInfoProvider import *
+
+optLabels = [
+                'conf=',
+                'glue1ce',
+                'glue1cluster',
+                'glue1cese',
+                'glue1service',
+                'glue2service',
+                'glue2manager',
+                'glue2ep',
+                'glue2share',
+                'glue2exenv',
+                'glue2tostor',
+                'help'
+]
+
+def help():
+    print '''info-provider-glue [options]
+Options:
+  conf <configuration file> : the path for the configuration file
+  help                      : print this help
+  glue1ce                   : print GLUE1 CE objects
+  glue1cluster              : print GLUE1 Cluster objects
+  glue1cese                 : print GLUE1 CE SE Binding objects
+  glue1service              : print GLUE1 Service objects
+  glue2service              : print GLUE2 Service objects
+  glue2manager              : print GLUE2 Manager objects
+  glue2es                   : print GLUE2 Computing Endpoint objects
+  glue2share                : print GLUE2 Computing Share objects
+  glue2exenv                : print GLUE2 Execution Environment objects
+  glue2tostor               : print GLUE2 ToStorage objects
+'''
 
 def main():
     
     try:
-        if len(sys.argv) <> 2:
-            raise Exception("Usage: info-provider-glue <config-file>")
+        opts, args = getopt.getopt(sys.argv[1:], "", optLabels)
             
-        config = CommonUtils.readConfigFile(sys.argv[1])
+        config = None
+        for oKey, oValue in opts:
+            if oKey == '--conf':
+                config = CommonUtils.readConfigFile(oValue)
+            if oKey == '--help':
+                help()
+                sys.exit(0)
+        
+        if not config:
+            sys.stderr.write("Missing configuration file\n")
+            sys.exit(2)
+        
+        ServiceInfoUtils.init(config)
 
         siteDefs = ShSiteDefHandler.parse(config)
-
-        GLUECEHandler.process(siteDefs)
         
-        GLUEClusterHandler.process(siteDefs)
+        for oKey, oValue in opts:
+
+            if oKey == '--glue1ce':
+                GLUECEHandler.process(siteDefs)
+        
+            if oKey == '--glue1cluster':
+                GLUEClusterHandler.process(siteDefs)
+        
+            if oKey == '--glue1cese':
+                GLUECESEBindHandler.process(siteDefs)
+
+            if oKey == '--glue1service':
+                GLUEServiceHandler.process(siteDefs)
+        
+            if oKey == '--glue2service':
+                GLUE2ServiceHandler.process(siteDefs)
+        
+            if oKey == '--glue2manager':
+                GLUE2ManagerHandler.process(siteDefs)
+        
+            if oKey == '--glue2ep':
+                GLUE2ComputingEndpointHandler.process(siteDefs)
+        
+            if oKey == '--glue2share':
+                GLUE2ComputingShareHandler.process(siteDefs)
+        
+            if oKey == '--glue2exenv':
+                GLUE2ExecEnvironHandler.process(siteDefs)
+
+            if oKey == '--glue2tostor':
+                GLUE2ToStorageHandler.process(siteDefs)
         
     except Exception, ex:
         etype, evalue, etraceback = sys.exc_info()
